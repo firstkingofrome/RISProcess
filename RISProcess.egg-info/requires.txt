@@ -1,0 +1,7 @@
+h5py
+jupyterlab
+numpy
+obspy
+pandas
+scipy
+tqdm

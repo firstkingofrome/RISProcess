@@ -1,0 +1,5 @@
+[console_scripts]
+cleancat = RISProcess.commands:cleancat
+dlfdsn = RISProcess.commands:dlfdsn
+process = RISProcess.commands:process
+

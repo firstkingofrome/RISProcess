@@ -80,7 +80,11 @@ def process(**kwargs):
     path : command line input
         This command-line function requires as input the path to the saved
         configuration file.
+    #for testing path= "./Config/config_detect.ini"
     """
+    
+    print("using modified RIS process command")
+    
     tic = datetime.now()
     if os.isatty(sys.stdin.fileno()):
         parser = argparse.ArgumentParser(
@@ -114,11 +118,25 @@ def process(**kwargs):
             for a in tqdm(A, **pbargs):
                 count += workflows.process_data(**a)
         else:
+			#You can submit them all at once or it eats all of the ram
             with ProcessPoolExecutor(max_workers=params.num_workers) as exec:
-                futures = [exec.submit(workflows.process_data, **a) for a in A]
+                #hold each job
+                #exec = ProcessPoolExecutor(max_workers=params.num_workers)
+                jobs = {}
+                for a in A:
+                    job = exec.submit(workflows.process_data, **a)
+                    jobs[job] =job
+                for job in as_completed(jobs):
+                    #garbage collect each job as it finishes
+                    del jobs[job]
+                #futures = [exec.submit(workflows.process_data, **a) for a in A]
+                #Changed this a bit because the progress bar was causing me a memory leak, pbArgs is progress bar arguments 
+                """
                 for future in tqdm(as_completed(futures), **pbargs):
                     count += future.result()
-
+                    print("One Future Complete")
+				"""
+                
         print(f"Processing complete.")
         if params.mode == "preprocess":
             print(f"{count} files saved to {params.writepath}")

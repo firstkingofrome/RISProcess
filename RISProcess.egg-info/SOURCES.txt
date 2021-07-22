@@ -1,0 +1,13 @@
+README.md
+setup.py
+RISProcess/__init__.py
+RISProcess/commands.py
+RISProcess/io.py
+RISProcess/processing.py
+RISProcess/workflows.py
+RISProcess.egg-info/PKG-INFO
+RISProcess.egg-info/SOURCES.txt
+RISProcess.egg-info/dependency_links.txt
+RISProcess.egg-info/entry_points.txt
+RISProcess.egg-info/requires.txt
+RISProcess.egg-info/top_level.txt
