@@ -93,6 +93,7 @@ def process(**kwargs):
         parser.add_argument("path", help="Path to config file")
         args = parser.parse_args()
         path = args.path
+        print(path)
     else:
         path=kwargs["path"]
     params = SignalProcessing(**config("r", path=path))

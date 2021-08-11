@@ -22,10 +22,10 @@ from RISProcess.io import write_h5datasets
 
 class SignalProcessing():
     def __init__(
-            self,
-            start,
-            stop,
-            mode,
+            self=None,
+            start=None,
+            stop=None,
+            mode=None,
             sourcepath='.',
             name_format=1,
             writepath='./ProcessedData',
@@ -55,6 +55,7 @@ class SignalProcessing():
             num_workers=1,
             verbose=0
         ):
+            
         self.mode = mode
         self.sourcepath = sourcepath
         self.writepath = writepath
@@ -92,6 +93,111 @@ class SignalProcessing():
         self.update_times(start, stop)
 
 
+    def update_times(self, start, stop):
+        """Updates time specifications.
+
+        Parameters
+        ----------
+        start : str
+            Start date-time
+
+        stop : str
+            Stop date-time
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        The intended use case of this function is to allow for iterative
+        updates to the dates/times of interest, without having to specify the
+        signal processing parameters with each iteration.
+        """
+        self.start = pd.Timestamp(start)
+        self.stop = pd.Timestamp(stop)
+
+        if (self.taper is not None) and (self.prefeed is not None):
+            self.buffer_front = self.taper + self.prefeed
+            self.buffer_back = self.taper
+        elif self.taper is not None:
+            self.buffer_front = self.taper
+            self.buffer_back = self.taper
+        elif self.prefeed is not None:
+            self.buffer_front = self.prefeed
+            self.buffer_back = 0
+        else:
+            self.buffer_front = 0
+            self.buffer_back = 0
+
+        self.start_processing = self.start - pd.Timedelta(seconds=self.buffer_front)
+        self.stop_processing = self.stop + pd.Timedelta(seconds=self.buffer_back)
+
+
+    def save_json(self, path=None):
+        """Saves class keys and values to JSON file.
+
+        Parameters
+        ----------
+        path : str
+            Path to save JSON file.
+        """
+        if path is None:
+            path = self.parampath
+
+        params = {str(key): str(value) for key, value in self.__dict__.items()}
+        with open(f'{path}/params_{self.mode}.json', 'w') as f:
+            json.dump(params, f)
+
+### version of the signal processing class that accepts dictionary of parameters directly
+### To make this convenient to use directly from a jupyter notebook
+### at some point learn how to overload constructors in python
+class SignalProcessingJupyter():
+    def __init__(self,params,verbose=True):
+        #these are not assigned since they are designed to be used durring processing
+        self.start=params["start"]
+        self.stop=params["stop"]
+        self.mode = params["mode"]
+        self.sourcepath = params["sourcepath"]
+        self.writepath = params["writepath"]
+        self.catalogue = '.'
+        self.parampath = None
+        self.name_format = params["name_format"]
+        self.network = params["network"]
+        self.station = params["station"]
+        self.channel = params["channel"]
+        self.taper = params["taper"]
+        self.prefeed = params["prefeed"]
+        self.fs2 = params["fs2"]
+        self.cutoff = params["cutoff"]
+        self.T_seg = params["T_seg"]
+        self.NFFT = params["NFFT"]
+        self.tpersnap = params["tpersnap"]
+        self.overlap = params["overlap"]
+        self.output = params["output"]
+        if params["prefilt"] is not None:
+            if isinstance(params["prefilt"], list):
+                prefilt = tuple(params["prefilt"])
+                self.prefilt = prefilt
+            else:
+                self.prefilt = params["prefilt"]
+        else:self.prefilt=None
+        self.waterlevel = params["waterlevel"]
+        self.detector = params["detector"]
+        self.STA = None
+        self.LTA = None
+        self.on = params["on"]
+        self.off = params["off"]
+        self.det_window = None
+        self.num_workers = params["num_workers"]
+        if((verbose) and (self.num_workers == 1)):
+            self.verbose = True
+        elif(verbose):
+            print("verbose is only supported with 1 worker!")
+            self.verbose = False
+
+        self.update_times(self.start, self.stop)
+        
     def update_times(self, start, stop):
         """Updates time specifications.
 
@@ -324,8 +430,10 @@ def pipeline(params):
             print("Reading station XML.")
         inv = read_stationXML(params.sourcepath, params.network, params.station)
         if params.verbose:
-            print("Removing response.")
-        st.remove_response(inventory=inv, water_level=params.waterlevel, output=params.output, pre_filt=params.prefilt, plot=False)
+            st.remove_response(inventory=inv, water_level=params.waterlevel, output=params.output, pre_filt=params.prefilt, plot=params.writepath+"/"+params.station+".png")
+            print("Removing response. including plot")
+        else:
+            st.remove_response(inventory=inv, water_level=params.waterlevel, output=params.output, pre_filt=params.prefilt, plot=False)
     # Decimate data
     if params.fs2 is not None:
         if params.verbose:
