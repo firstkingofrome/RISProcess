@@ -21,6 +21,8 @@ from RISProcess import workflows
 from RISProcess.processing import clean_catalogue, SignalProcessing
 
 
+
+
 def cleancat():
     """This command-line function reads a seismic catalogue and removes
     duplicate detections, and optionally, detections that occur within a window

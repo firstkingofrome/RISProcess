@@ -17,6 +17,93 @@ import pandas as pd
 from RISProcess.io import write_h5datasets
 from RISProcess import processing
 
+"""
+This function works with hank coles detection catalogue which has some slightly different parameters
+only single core for now, not intended for use witht he process utility yet
+
+
+"""
+def build_h5_hank_catalogue(params,srate=0.02):
+    catalogue = pd.read_csv(params.catalogue, parse_dates=[4,5,6], index_col=0)
+    mask_start = params.start.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    mask_stop = params.stop.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    
+    mask = (catalogue['pick_time'] >= mask_start) & (catalogue['pick_time'] < mask_stop)
+    catalogue = catalogue.loc[mask]
+    
+    
+    if params.station == "*":
+        station_list = catalogue["station"].unique()
+    else:
+        station_list = [params.station]
+    count = 0
+    
+
+    
+    for station in station_list:
+        try:
+            mask = catalogue["station"] == station
+            subcatalogue = catalogue.loc[mask]
+            #I am actually working on the subcatalogue object
+            M = len(subcatalogue)
+            #this is a bit of a hack, its meant to deal with the fact that Jenkins coded this to opperate with 4 second intervals
+            #it should be dynamic now
+            tr_arr = np.zeros((M, int(params.T_seg/(0.02))-1))            
+            S_arr = np.zeros((M, 88, int(params.T_seg/(0.02*2))+1))
+            metadata = []
+            dt_prev = subcatalogue["pick_time"].iloc[0]
+            for i, row in enumerate(subcatalogue.itertuples()):
+                
+                dt = row.pick_time
+                if (i > 1) and (dt < dt_prev + pd.Timedelta(params.det_window, "sec")):
+                    continue
+                else:
+                    start = pd.Timestamp(row.body_ta) - pd.Timedelta(params.det_window, "sec")
+                    stop = pd.Timestamp(row.body_ta) + pd.Timedelta(params.det_window, "sec")
+                    params_copy = deepcopy(params)
+                    params_copy.update_times(start, stop)
+                    params_copy.station = row.station
+                    #I am not sure why the specturm (S) has 3 parameters here?
+                    tr = processing.pipeline(params_copy)[0]
+                    _, _, _, S_arr[i], dt0, dt1 = processing.centered_spectrogram(tr, params_copy)
+                    
+                    tr_arr[i, :] = tr.trim(
+                        starttime=obspy.core.UTCDateTime(dt0),
+                        endtime=obspy.core.UTCDateTime(dt1)
+                    ).data
+
+                    entry = row._asdict()
+                    entry["spec_start"] = dt0
+                    entry["spec_stop"] = dt1
+                    entry.update((k, v.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]) for k, v in entry.items() if isinstance(v, pd.Timestamp))
+                    metadata.append(entry)
+                    dt_prev = dt
+                    
+            not_zeros = [tr_arr[i,:].any() for i in range(M)]
+            tr_arr = tr_arr[not_zeros]
+            S_arr = S_arr[not_zeros]
+            
+            try:
+                count += write_h5datasets(tr_arr, S_arr, metadata, params)
+                
+            except OSError:
+                raise OSError("Unable to write data; check write path.")
+        except OSError:
+            print("os error in processing module")
+            raise
+            
+        except KeyError:
+            print("Did you forget to initialize the hdf5 object?")
+            raise
+        """
+        except Exception as e:
+            print(repr(e))
+            break
+        """
+        
+    return count
+    
+    
 
 def build_h5(params):
     catalogue = pd.read_csv(params.catalogue, parse_dates=[4,5,6], index_col=0)
@@ -27,6 +114,7 @@ def build_h5(params):
     catalogue = catalogue.loc[mask]
 
     if catalogue["dt_on"].empty:
+        print("the catalogue was empty")
         return 0
     else:
         if params.station == "*":

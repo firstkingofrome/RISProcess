@@ -107,18 +107,20 @@ def init_h5datasets(params):
                 params.tpersnap,
                 50,
                 h5_name,
-                params.overlap
+                params.overlap,
+                params.dt
             )
 
 
-def make_h5datasets(T_seg, NFFT, tpersnap, fs, group_name, overlap):
+def make_h5datasets(T_seg, NFFT, tpersnap, fs, group_name, overlap,dt):
     """Defines the structure of the .h5 database; h5py package required.
     Of note, pay special attention to the dimensions of the chunked data. By
     anticipating the output data dimensions, one can chunk the saved data on
     disk accordingly, making the reading process go much more quickly."""
     # Set up dataset for traces:
+    
     m = 0
-    n = 199
+    n = int((T_seg/(dt)))-1
     dset_tr = group_name.create_dataset(
         'Trace',
         (m, n),
@@ -131,7 +133,7 @@ def make_h5datasets(T_seg, NFFT, tpersnap, fs, group_name, overlap):
     m = 0
     # n = int(NFFT/2 + 1) + 1
     n = 88
-    o = 101
+    o = int((T_seg/(dt*2)))+1
     dset_spec = group_name.create_dataset(
         'Spectrogram',
         (m, n, o),
