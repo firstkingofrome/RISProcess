@@ -132,7 +132,8 @@ def make_h5datasets(T_seg, NFFT, tpersnap, fs, group_name, overlap,dt):
     # Set up dataset for spectrograms:
     m = 0
     # n = int(NFFT/2 + 1) + 1
-    n = 88
+    print("in make data sets " + str(int(NFFT/2 + 1) + 1))
+    n = 98
     o = int((T_seg/(dt*2)))+1
     dset_spec = group_name.create_dataset(
         'Spectrogram',

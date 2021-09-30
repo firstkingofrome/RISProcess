@@ -188,6 +188,7 @@ def centered_spectrogram(tr, params):
     tvec = np.insert(t, 0, np.NAN)
     S_out = np.hstack((f[:,None], S))
     S_out = np.vstack((S_out, tvec))
+    #raise ValueError
     return t, f, S, S_out, dtvec[tmask_c][0], dtvec[tmask_c][-1]
 
 

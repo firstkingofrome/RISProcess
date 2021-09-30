@@ -48,12 +48,12 @@ def build_h5_hank_catalogue(params,srate=0.02):
             M = len(subcatalogue)
             #this is a bit of a hack, its meant to deal with the fact that Jenkins coded this to opperate with 4 second intervals
             #it should be dynamic now
-            tr_arr = np.zeros((M, int(params.T_seg/(0.02))-1))            
-            S_arr = np.zeros((M, 88, int(params.T_seg/(0.02*2))+1))
+            tr_arr = np.zeros((M, int(params.T_seg/(params.dt))-1))
+            #S_arr = []           
+            S_arr = np.zeros((M, 98, int(params.T_seg/(params.dt*2))+1))
             metadata = []
             dt_prev = subcatalogue["pick_time"].iloc[0]
             for i, row in enumerate(subcatalogue.itertuples()):
-                
                 dt = row.pick_time
                 if (i > 1) and (dt < dt_prev + pd.Timedelta(params.det_window, "sec")):
                     continue
