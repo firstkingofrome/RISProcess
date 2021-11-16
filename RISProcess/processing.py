@@ -173,6 +173,10 @@ def centered_spectrogram(tr, params):
         noverlap=params.overlap*npersnap,
         nfft=params.NFFT
     )
+    #take the log spectrum
+    #print("log spectrum")
+    S = np.log10(S)
+    
     dtvec = params.start_processing + pd.to_timedelta(t, "sec")
     tmask = (dtvec >= params.start) & (dtvec < params.stop)
     dtvec_ = dtvec[tmask]
@@ -434,6 +438,7 @@ def read_stream(params):
         )
         return st
     else:
+        raise ValueError
         return -1
 
 
